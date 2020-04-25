@@ -41,7 +41,7 @@ $mode = explode(' ', $argmode)[0];
 
 
 if ($mode === '--help' || !in_array($mode, ['start', 'score', 'tour', 'vote', ''], true)) {
-	echo '/game - une commande pour jouer à l\infiltré' . "\n";
+	echo '/game - une commande pour jouer à l\'infiltré' . "\n";
 	echo "\n";
 	echo 'Example: /game start|score|tour|vote <joueur>' . "\n";
 	return;
@@ -268,6 +268,7 @@ switch ($mode) {
 			echo "Pas de score pour le moment, veuillez lancer une partie";
 			return;
 		} else {
+			$response_bot = "";
 			$fileScore = file_get_contents($file);
 			$obj = json_decode($fileScore);
 	
@@ -362,7 +363,7 @@ switch ($mode) {
 				}
 				
 				if (($nbinfiltre == 1) && ($nbjoueur <= 1)) {
-					$response_bot .= "L\'infiltré gagne.\n";
+					$response_bot .= "L'infiltré gagne.\n";
 
 					// creation {$room}_score.json
 					$fileScore = ROOT.'/data/'.$room.'_score.json';
@@ -413,18 +414,23 @@ switch ($mode) {
 		$obj = json_decode($filedata);
 
 		$response_bot = "Ordre du tour\n";
+		$tabOrdre = array();
 		foreach ($obj as $element) {
-			if ($element->name != 'bot_infiltre') {
-				if ($element->en_jeu != 'elimine') {
-					$response_bot .= $element->ordre .": @" . $element->name."\n";
-				}
+			if ($element->en_jeu != 'elimine') {
+				$tabOrdre[$element->ordre] = $element->name;
 			}
 		}
+		ksort($tabOrdre);
+
+		foreach ($tabOrdre as $element) {
+			$response_bot .= "- @".$element."\n";
+		}
+
 		if ($response_bot == ""){
 			$response_bot = "Erreur : plus de joueur";
 		}
 		NextcloudTalk_SendMessage($room, $response_bot);
-		echo "A qui de jouer ?";
+		$response_bot .= "A qui de jouer ?";
 
 
 		break;
