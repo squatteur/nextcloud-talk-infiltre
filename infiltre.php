@@ -116,7 +116,7 @@ switch ($mode) {
 		
 		$objparticipants = NextcloudTalk_Participants($room, $message) . "\n";
 		$participants = json_decode($objparticipants);
-		
+
 		// lire le json avec les mots 
 			$datamot = file_get_contents(ROOT.'/data/nom.json'); 
 			$obj = json_decode($datamot); 
@@ -184,12 +184,12 @@ switch ($mode) {
 		// 	$response .= $ordre2 ."\n";
 		// }
 		$tabJoueur = array();
+		$tabScore = array();
 		foreach ($participants->ocs->data as $v) {
 		
 			if ($v->userId != 'bot_infiltre') {
 				$tabJoueur["name"] = $v->userId;
-				
-				$tabJoueur["score"] = 0;
+				$tabScore[$v->userId] = 0;
 				if ($joueur == $indice_infiltre){
 					$tabJoueur["mot"] = $mot_infiltre;
 					$tabJoueur["role"] = "infiltre";
@@ -213,6 +213,15 @@ switch ($mode) {
 			}
 		 }
 		 $listeparticipants .= "\n";
+
+		 		
+		// creation {$room}_score.json
+		$fileScore = ROOT.'/data/'.$room.'_score.json';
+		if (!file_exists($fileScore)){
+
+			$dataScore = json_encode($tabScore);
+			file_put_contents($fileScore, $dataScore);
+		}
 
 		// creation {$room}.json
 		$file = ROOT.'/data/'.$room.'.json';
@@ -240,26 +249,45 @@ switch ($mode) {
 		break;
 
 	case 'score':
+		if (isset(explode(' ', $argmode)[1])) {
+			$suppression = explode(' ', $argmode)[1];
+			if ($suppression == "supp") {
+				if (file_exists(ROOT.'/data/'.$room.'_score.json')) {
+					unlink(ROOT.'/data/'.$room.'_score.json');
+				} else {
+					echo "Il n'y a pas de fichier de score pour ce salon.";
+				}
+			}
+		return;
+		}
+
+		
 		// lecture {$room}.json
 		$file = ROOT.'/data/'.$room.'_score.json';
-		$fileScore = file_get_contents($file);
-		$obj = json_decode($fileScore);
-
-		foreach ($obj as $joueur => $score) {
-			$response_bot .= "- @" . $joueur . " : " . $score. " points\n";
+		if (!file_exists($file)){
+			echo "Pas de score pour le moment, veuillez lancer une partie";
+			return;
+		} else {
+			$fileScore = file_get_contents($file);
+			$obj = json_decode($fileScore);
+	
+			foreach ($obj as $joueur => $score) {
+				$response_bot .= "- @" . $joueur . " : " . $score. " points\n";
+			}
+	
+			// $response_bot = "";
+			// foreach ($obj as $element) {
+			// 	if ($element->name != 'bot_infiltre') {
+			// 		$response_bot .= "- @" . $element->name . " : " . $element->score. " points\n";
+			// 	}
+			// }
+			if ($response_bot == ""){
+				$response_bot = "Erreur : pas de score";
+			}
+			NextcloudTalk_SendMessage($room, $response_bot);
+			echo " ";
+	
 		}
-
-		// $response_bot = "";
-		// foreach ($obj as $element) {
-		// 	if ($element->name != 'bot_infiltre') {
-		// 		$response_bot .= "- @" . $element->name . " : " . $element->score. " points\n";
-		// 	}
-		// }
-		if ($response_bot == ""){
-			$response_bot = "Erreur : pas de score";
-		}
-		NextcloudTalk_SendMessage($room, $response_bot);
-		echo " ";
 		break;
 
 	case 'vote':
@@ -293,21 +321,17 @@ switch ($mode) {
 					// creation {$room}_score.json
 					$fileScore = ROOT.'/data/'.$room.'_score.json';
 					if (file_exists($fileScore)) {
-						$response_bot .= "existe fichier.\n";
 						$fileScore2 = file_get_contents($fileScore);
 						$objScore = json_decode($fileScore2);
 						foreach ($objScore as $key => $value) {
 							if ($key == $element->name){
-								$response_bot .= "$key->$value.  $element->name \n";
 								$objScore->$key = $value;
 							} else {
-								$response_bot .= "$key->$value.  $element->name \n";
 								$objScore->$key = $value + 2;
 							}
 						}
 						$dataScore2 = json_encode($objScore);
 						file_put_contents($fileScore, $dataScore2);
-
 					} else {
 						//recherche joueur et score
 						foreach ($obj as $element2) {
@@ -320,12 +344,56 @@ switch ($mode) {
 						}
 						$dataScore2 = json_encode($dataScore);
 						file_put_contents($fileScore, $dataScore2);
+						return;
 					}
 
 				}
-
-
 				// si nb de joueur = 1 alors infiltre gagne
+				$nbjoueur = 0;
+				$nbinfiltre = 0;
+				//recherche joueur et score
+				foreach ($obj as $element2) {
+					if (($element2->role == 'joueur') && ($element2->en_jeu == 'true')){
+						$nbjoueur++;
+					}
+					if (($element2->role == 'infiltre') && ($element2->en_jeu == 'true')){
+						$nbinfiltre++;
+					}
+				}
+				
+				if (($nbinfiltre == 1) && ($nbjoueur <= 1)) {
+					$response_bot .= "L\'infiltré gagne.\n";
+
+					// creation {$room}_score.json
+					$fileScore = ROOT.'/data/'.$room.'_score.json';
+					if (file_exists($fileScore)) {
+						$fileScore2 = file_get_contents($fileScore);
+						$objScore = json_decode($fileScore2);
+						foreach ($objScore as $key => $value) {
+							if ($key == $element->name){
+								$objScore->$key = $value + 10;
+							} else {
+								$objScore->$key = $value;
+							}
+						}
+						$dataScore2 = json_encode($objScore);
+						file_put_contents($fileScore, $dataScore2);
+
+					} else {
+						//recherche joueur et score
+						foreach ($obj as $element2) {
+							if ($element2->role == 'joueur'){
+								$dataScore[$element2->name] = 0;
+							}
+							if ($element2->role == 'infiltre'){
+								$dataScore[$element2->name] = 10;
+							}
+						}
+						$dataScore2 = json_encode($dataScore);
+						file_put_contents($fileScore, $dataScore2);
+						return;
+					}
+				}
 
 				NextcloudTalk_SendMessage($room, $response_bot);
 				echo "Faites /game tour";
@@ -360,6 +428,7 @@ switch ($mode) {
 
 
 		break;
+
 	default:
 		echo "/game --help";
 }
