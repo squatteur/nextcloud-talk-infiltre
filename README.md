@@ -8,8 +8,8 @@ Copier infiltre.php, mot.php, config.php et le mots.json dans /data et  sur votr
 
 Lancer la commande pour initialiser les commandes `/game` et `/mot` :
 ```
-sudo -u www-data php occ talk:command:add game infiltre "/path/to/your/directory/infiltre.php \"{ARGUMENTS_DOUBLEQUOTE_ESCAPED}\" {ROOM} {USER}" 2 3
-sudo -u www-data php ./occ talk:command:add mot mot "/path/to/your/directory/mot.php \"{ARGUMENTS_DOUBLEQUOTE_ESCAPED}\" {ROOM} {USER}" 1 3
+sudo -u www-data php occ talk:command:add game infiltre "/path/to/your/directory/infiltre.php {ARGUMENTS} {ROOM} {USER}" 2 3
+sudo -u www-data php ./occ talk:command:add mot mot "/path/to/your/directory/mot.php {ARGUMENTS} {ROOM} {USER}" 1 3
 ```
 
 création de l'utilisateur bot_infiltre pour que le bot envoie des messages avec une coloration au pseudo du type @pseudo et d'obtenir la liste des participants à la room.
